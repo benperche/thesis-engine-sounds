@@ -24,16 +24,18 @@ STEP = 0.5
 # Each element of this array will represent a sine wave, with the value
 # to represent the ratio to the fundamental
 # i.e. [1, 2] would create an octave, 2:1 ratio between intervals
-Tones = [1, 1.5]
-
-# Store the current posiiton in each sine wave in a Phase array
-Phases = [0, 0]
-
-# Store the current frequencies of this number of sine waves
-Frequencies = [300, 300]
+Tones = [1, 1.25, 1.5]
 
 # Store the relative amplitudes of each sine wave
-Amplitudes = [0.3, 0.1]
+Amplitudes = [0.3, 0.2, 0.1]
+
+# Store the current posiiton in each sine wave in a Phase array
+# Also store the current frequencies of this number of sine waves
+# Create array to be the same size as the tones
+Phases = [0] * len(Tones)
+Frequencies = [300] * len(Tones)
+
+
 
 # FIRSTHARMONICRATIO = 1.345
 
