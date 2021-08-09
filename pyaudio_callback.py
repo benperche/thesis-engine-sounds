@@ -12,6 +12,7 @@ import array
 
 INITIAL_FREQUENCY = 200
 
+
 # Store data for each tone to be generated:
 # ratio = harmonic ratio (float) to fundamental frequency
 # amplitude = relative loudness of this tone (float 0-0.5 usually)
@@ -63,15 +64,20 @@ outbuf = array.array('h', range(FRAMES_PER_BUFFER*CHANNELS))
 def showDevices(p):
     # Print Defaul output device
     print("Default output device id: ", p.get_default_output_device_info().get(
-            'PaHostApiIndex'), " - ", p.get_default_output_device_info().get('name'))
+            'PaHostApiIndex'), " - ", p.get_default_output_device_info().get(
+            'name'))
 
     info = p.get_host_api_info_by_index(0)
     numdevices = info.get('deviceCount')
     for i in range(0, numdevices):
-        if p.get_device_info_by_host_api_device_index(0, i).get('maxInputChannels') > 0:
-            print("Input Device id ", i, " - ", p.get_device_info_by_host_api_device_index(0, i).get('name'))
-        if p.get_device_info_by_host_api_device_index(0, i).get('maxOutputChannels') > 0:
-            print("Output Device id ", i, " - ", p.get_device_info_by_host_api_device_index(0, i).get('name'))
+        if p.get_device_info_by_host_api_device_index(0, i).get(
+                        'maxInputChannels') > 0:
+            print("Input Device id ", i, " - ",
+                  p.get_device_info_by_host_api_device_index(0, i).get('name'))
+        if p.get_device_info_by_host_api_device_index(0, i).get(
+                        'maxOutputChannels') > 0:
+            print("Output Device id ", i, " - ",
+                  p.get_device_info_by_host_api_device_index(0, i).get('name'))
 
 
 # Select first reasonable audio device
@@ -82,9 +88,10 @@ def setOutputDevice(p):
 
     for i in range(0, numdevices):
         # only pick a device with audio channels
-        if p.get_device_info_by_host_api_device_index(0, i).get('maxOutputChannels') > 0:
-            print("checking ", p.get_device_info_by_host_api_device_index(0, i).get('name'))
-            # if p.get_device_info_by_host_api_device_index(0, i).get('name').find("pulse") >= 0:
+        if p.get_device_info_by_host_api_device_index(0, i).get(
+                        'maxOutputChannels') > 0:
+            print("checking ",
+                  p.get_device_info_by_host_api_device_index(0, i).get('name'))
             outputDevice = i
             print("Selected device number: ", str(outputDevice))
             break
@@ -101,9 +108,11 @@ def setDefaultOutputDevice(p):
 
     for i in range(0, numdevices):
         # only pick output devices - some devices have both inputs and outputs
-        if p.get_device_info_by_host_api_device_index(0, i).get('maxOutputChannels') > 0:
+        if p.get_device_info_by_host_api_device_index(0, i).get(
+                        'maxOutputChannels') > 0:
 
-            print("checking ", p.get_device_info_by_host_api_device_index(0, i).get('name'))
+            print("checking ",
+                  p.get_device_info_by_host_api_device_index(0, i).get('name'))
 
             # Check if this is the default device
             if (p.get_device_info_by_host_api_device_index(0, i).get('name')
@@ -136,7 +145,8 @@ def callback(in_data, frame_count, time_info, status):
                 # print(range(len(Tones)-1))
 
                 # Calculate the value to store in the outbuf
-                next_val = int(32767 * currentTone.amplitude * np.sin(currentTone.phase))
+                next_val = int(32767 * currentTone.amplitude *
+                               np.sin(currentTone.phase))
 
                 # Add this to existing values (eg previous tones in loop)
                 outbuf[s] += next_val
