@@ -13,11 +13,11 @@ import array
 WIDTH = 2  # sample size in bytes
 CHANNELS = 2  # number of samples in a frame
 RATE = 44100
-FRAMESPERBUFFER = 1024
+FRAMES_PER_BUFFER = 1024
 
 # Temporary sweep parameters
-UPPERFREQ = 350
-LOWERFREQ = 200
+UPPER_FREQ = 350
+LOWER_FREQ = 200
 STEP = 0.5
 
 # Set up frequency relationships between sine waves
@@ -108,7 +108,7 @@ def setDefaultOutputDevice(p):
 #
 # Create array of signed ints to hold one sample buffer
 # Make it global so it doesn't get re-allocated for every frame
-outbuf = array.array('h', range(FRAMESPERBUFFER*CHANNELS))
+outbuf = array.array('h', range(FRAMES_PER_BUFFER*CHANNELS))
 
 
 # Callback function which is called by pyaudio
@@ -176,7 +176,7 @@ def main():
     stream = paHandle.open(format=paHandle.get_format_from_width(WIDTH),
                            channels=CHANNELS,
                            rate=RATE,
-                           frames_per_buffer=FRAMESPERBUFFER,
+                           frames_per_buffer=FRAMES_PER_BUFFER,
                            input=False,  # no input
                            output=True,  # only output
                            output_device_index=outputDevice,  # choose outputdevice
@@ -197,7 +197,7 @@ def main():
             count = 0
 
             # Change direction when out of bounds
-            if Frequencies[0] > UPPERFREQ:
+            if Frequencies[0] > UPPER_FREQ:
                 ascending = False
             elif Frequencies[0] < LOWERFREQ:
                 ascending = True
