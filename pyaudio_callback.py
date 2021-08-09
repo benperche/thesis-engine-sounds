@@ -36,17 +36,19 @@ Phases = [0] * len(Tones)
 Frequencies = [300] * len(Tones)
 
 
+class Tone:
+    # Constructor
+    def __init__(self, ratio, amplitude):
+        self.ratio = ratio
+        self.amplitude = amplitude
 
-# FIRSTHARMONICRATIO = 1.345
+    phase = 0
+    frequency = 300
 
-# INITIALFREQ = 300
 
-# sineFrequency = INITIALFREQ
+ClassTones = [Tone(1, 0.3), Tone(1.5, 0.2)]
 
 outputDevice = 0
-
-phase = 0  # sine phase
-phase2 = 0
 
 
 #
@@ -131,13 +133,13 @@ def callback(in_data, frame_count, time_info, status):
 
             outbuf[s] = 0
             # Loop through the number of sine waves in Tones
-            for t, val in enumerate(Tones):
+            for t, currentTone in enumerate(ClassTones):
                 # print(range(len(Tones)-1))
 
-                outbuf[s] = outbuf[s] + int(32767 * Amplitudes[t] * np.sin(Phases[t]))
+                outbuf[s] = outbuf[s] + int(32767 * currentTone.amplitude * np.sin(currentTone.phase))
 
                 # Update phase of this tone
-                Phases[t] += 2*np.pi*Frequencies[t]/RATE
+                currentTone.phase += 2*np.pi*currentTone.frequency/RATE
 
                 # Move to next sample to store
             s += 1
@@ -156,9 +158,10 @@ def callback(in_data, frame_count, time_info, status):
 #########################
 
 def main():
-    global sineFrequency
-    global sineFrequency2
+    # global sineFrequency
+    # global sineFrequency2
 
+    # print(ClassTones[0].ratio)
     #
     # get a handle to the pyaudio interface
     #
@@ -197,18 +200,18 @@ def main():
             count = 0
 
             # Change direction when out of bounds
-            if Frequencies[0] > UPPER_FREQ:
+            if ClassTones[0].frequency > UPPER_FREQ:
                 ascending = False
-            elif Frequencies[0] < LOWERFREQ:
+            elif ClassTones[0].frequency < LOWER_FREQ:
                 ascending = True
 
             if ascending:
-                Frequencies[0] += STEP
+                ClassTones[0].frequency += STEP
             else:
-                Frequencies[0] -= STEP
+                ClassTones[0].frequency -= STEP
 
-            for t,val in enumerate(Tones):
-                Frequencies[t] = Frequencies[0] * val
+            for t, val in enumerate(ClassTones):
+                val.frequency = ClassTones[0].frequency * val.ratio
                 # print('Frequencies ', t, ' = ', Frequencies[t])
 
     stream.stop_stream()
