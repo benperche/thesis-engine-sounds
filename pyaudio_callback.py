@@ -91,36 +91,31 @@ def setDefaultOutputDevice(p):
 #
 # Create array of signed ints to hold one sample buffer
 # Make it global so it doesn't get re-allocated for every frame
-#
 outbuf = array.array('h', range(FRAMESPERBUFFER*CHANNELS))
-# outbuf = array.array(range(FRAMESPERBUFFER))
 
 
-#
-# Create the callback function which is called by pyaudio
+# Callback function which is called by pyaudio
 #   whenever it needs output-data or has input-data
 def callback(in_data, frame_count, time_info, status):
     global phase
     global phase2
     global outbuf
-    # print(f"Callback, frame_count is {frame_count}")
 
     # Keep track of samples to store
     s = 0
+
     # Loop through number of frames to output
     for f in range(frame_count):
-        # outbuf[n] = int(32767 * 0.5 * np.sin(phase))
-        # outbuf[n] = int(0.5 * np.sin(phase))
 
         # For each frame store one sample
-        # s+=1
+
         # In each frame put CHANNELS number of 32bit floats.
         for c in range(CHANNELS):
             outbuf[s] = int(32767 * 0.3 * np.sin(phase)
                             + 32767 * 0.2 * np.sin(phase2))
-
             s += 1
 
+        # Update phase of both sine waves
         phase += 2*np.pi*sineFrequency/RATE
         phase2 += 2*np.pi*sineFrequency2/RATE
 
@@ -187,10 +182,8 @@ def main():
             else:
                 sineFrequency -= STEP
 
-        sineFrequency2=sineFrequency*FIRSTHARMONICRATIO
+        sineFrequency2 = sineFrequency * FIRSTHARMONICRATIO
 
-
-    # in this example you'll never get here
     stream.stop_stream()
     stream.close()
     print("Stopped")
