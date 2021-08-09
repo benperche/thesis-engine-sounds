@@ -1,41 +1,21 @@
 #
-# Basic pyaudio program playing a real time mono sine wave
+# Sinewave generator using pyaudio callback
 #
-# (ME) 2015 Marc Groenewegen
+# Author: Ben Perche, Faculty of Engineering, University of Sydney
+# Initial Code: (ME) 2015 Marc Groenewegen
 # https://www.dinkum.nl/software/python/audio/basic_sine.py
 #
 
 import pyaudio
-# import time
 import numpy as np
 import array
 
-WIDTH = 2  # sample size in bytes
-CHANNELS = 2  # number of samples in a frame
-RATE = 44100
-FRAMES_PER_BUFFER = 1024
-
-# Temporary sweep parameters
-UPPER_FREQ = 350
-LOWER_FREQ = 200
-STEP = 0.5
-
-# Set up frequency relationships between sine waves
-# Each element of this array will represent a sine wave, with the value
-# to represent the ratio to the fundamental
-# i.e. [1, 2] would create an octave, 2:1 ratio between intervals
-Tones = [1, 1.25, 1.5]
-
-# Store the relative amplitudes of each sine wave
-Amplitudes = [0.3, 0.2, 0.1]
-
-# Store the current posiiton in each sine wave in a Phase array
-# Also store the current frequencies of this number of sine waves
-# Create array to be the same size as the tones
-Phases = [0] * len(Tones)
-Frequencies = [300] * len(Tones)
-
-
+# Store data for each tone to be generated:
+# ratio = harmonic ratio (float) to fundamental frequency
+# amplitude = relative loudness of this tone (float 0-0.5 usually)
+#
+# automatically updated:
+# phase, frequency (both variable)
 class Tone:
     # Constructor
     def __init__(self, ratio, amplitude):
@@ -46,14 +26,33 @@ class Tone:
     frequency = 300
 
 
-ClassTones = [Tone(1, 0.3), Tone(1.5, 0.2)]
+# Instantiate a list of tone objects with relative harmonic ratios and
+# amplitudes
+ClassTones = [Tone(1, 0.3), Tone(1.5, 0.2), Tone(1.25, 0.1)]
 
+# Audio output constants
+WIDTH = 2  # sample size in bytes
+CHANNELS = 2
+RATE = 44100
+FRAMES_PER_BUFFER = 1024
+
+# Temporary sweep parameters
+UPPER_FREQ = 350
+LOWER_FREQ = 200
+STEP = 0.5
+
+
+
+# Global index for output device
 outputDevice = 0
 
+# Create array of signed ints to hold one sample buffer
+# Make it global so it doesn't get re-allocated for every frame
+outbuf = array.array('h', range(FRAMES_PER_BUFFER*CHANNELS))
 
-#
+
+
 # Function showDevices() lists available input- and output devices
-#
 def showDevices(p):
     # Print Defaul output device
     print("Default output device id: ", p.get_default_output_device_info().get(
@@ -107,45 +106,42 @@ def setDefaultOutputDevice(p):
                 break
 
 
-#
-# Create array of signed ints to hold one sample buffer
-# Make it global so it doesn't get re-allocated for every frame
-outbuf = array.array('h', range(FRAMES_PER_BUFFER*CHANNELS))
-
-
 # Callback function which is called by pyaudio
 #   whenever it needs output-data or has input-data
 def callback(in_data, frame_count, time_info, status):
-    global phase
-    global phase2
+    global ClassTones
     global outbuf
 
-    # Keep track of samples to store
+    # Index for samples to store in output buffer
     s = 0
 
     # Loop through number of frames to output
     for f in range(frame_count):
 
-        # For each frame store one sample
-
-        # In each frame put CHANNELS number of 32bit floats.
+        # Loop through number of output channels
         for c in range(CHANNELS):
 
+            # Clear any existing stored value in the output buffer
             outbuf[s] = 0
-            # Loop through the number of sine waves in Tones
-            for t, currentTone in enumerate(ClassTones):
+
+            # Loop through the number of Tones
+            for currentTone in ClassTones:
                 # print(range(len(Tones)-1))
 
-                outbuf[s] = outbuf[s] + int(32767 * currentTone.amplitude * np.sin(currentTone.phase))
+                # Calculate the value to store in the outbuf
+                next_val = int(32767 * currentTone.amplitude * np.sin(currentTone.phase))
 
-                # Update phase of this tone
+                # Add this to existing values (eg previous tones in loop)
+                outbuf[s] += next_val
+
+                # Update phase of this tone to compute the next value
                 currentTone.phase += 2*np.pi*currentTone.frequency/RATE
 
-                # Move to next sample to store
+            # Move along to next sample in outbuf once worked through all the
+            # tones to be output
             s += 1
-        # Update phase of both sine waves
-        # phase += 2*np.pi*sineFrequency/RATE
-        # phase2 += 2*np.pi*sineFrequency2/RATE
+
+            # Put the same sample in all channels
 
     # Convert output buffer to immutable bytes array
     out = bytes(outbuf)
@@ -158,13 +154,9 @@ def callback(in_data, frame_count, time_info, status):
 #########################
 
 def main():
-    # global sineFrequency
-    # global sineFrequency2
+    global ClassTones
 
-    # print(ClassTones[0].ratio)
-    #
     # get a handle to the pyaudio interface
-    #
     paHandle = pyaudio.PyAudio()
 
     # select a device
@@ -172,7 +164,7 @@ def main():
     devinfo = paHandle.get_device_info_by_index(outputDevice)
     print("Selected device name: ", devinfo.get('name'))
 
-    # Set nunber of channels
+    # Setup nunber of channels
     CHANNELS = devinfo.get('maxOutputChannels')
 
     # open a stream with some given properties
@@ -182,19 +174,19 @@ def main():
                            frames_per_buffer=FRAMES_PER_BUFFER,
                            input=False,  # no input
                            output=True,  # only output
-                           output_device_index=outputDevice,  # choose outputdevice
+                           output_device_index=outputDevice,
                            stream_callback=callback)
 
     stream.start_stream()
 
+    # Setup frequency sweep values to be used in loop
     count = 0
     ascending = True
-    # Make sure that the main program doesn't finish until all
-    #  audio processing is done
+
+    # Loop while new info comes in
     while stream.is_active():
 
         # Gradually change direction of sine wave
-
         count += 1
         if count > 10000:
             count = 0
@@ -205,14 +197,15 @@ def main():
             elif ClassTones[0].frequency < LOWER_FREQ:
                 ascending = True
 
+            # Update frequency of fundamental
             if ascending:
                 ClassTones[0].frequency += STEP
             else:
                 ClassTones[0].frequency -= STEP
 
-            for t, val in enumerate(ClassTones):
-                val.frequency = ClassTones[0].frequency * val.ratio
-                # print('Frequencies ', t, ' = ', Frequencies[t])
+            # Update frequencies of all other tones
+            for currentTone in ClassTones:
+                currentTone.frequency = ClassTones[0].frequency * currentTone.ratio
 
     stream.stop_stream()
     stream.close()
