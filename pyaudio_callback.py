@@ -15,16 +15,31 @@ CHANNELS = 2  # number of samples in a frame
 RATE = 44100
 FRAMESPERBUFFER = 1024
 
+# Temporary sweep parameters
 UPPERFREQ = 350
 LOWERFREQ = 200
 STEP = 0.5
 
-FIRSTHARMONICRATIO = 1.345
+# Set up frequency relationships between sine waves
+# Each element of this array will represent a sine wave, with the value
+# to represent the ratio to the fundamental
+# i.e. [1, 2] would create an octave, 2:1 ratio between intervals
+Tones = [1, 1.5]
 
-INITIALFREQ = 300
+# Store the current posiiton in each sine wave in a Phase array
+Phases = [0, 0]
 
+# Store the current frequencies of this number of sine waves
+Frequencies = [300, 300]
 
-sineFrequency = INITIALFREQ
+# Store the relative amplitudes of each sine wave
+Amplitudes = [0.3, 0.1]
+
+# FIRSTHARMONICRATIO = 1.345
+
+# INITIALFREQ = 300
+
+# sineFrequency = INITIALFREQ
 
 outputDevice = 0
 
@@ -111,13 +126,22 @@ def callback(in_data, frame_count, time_info, status):
 
         # In each frame put CHANNELS number of 32bit floats.
         for c in range(CHANNELS):
-            outbuf[s] = int(32767 * 0.3 * np.sin(phase)
-                            + 32767 * 0.2 * np.sin(phase2))
-            s += 1
 
+            outbuf[s] = 0
+            # Loop through the number of sine waves in Tones
+            for t, val in enumerate(Tones):
+                # print(range(len(Tones)-1))
+
+                outbuf[s] = outbuf[s] + int(32767 * Amplitudes[t] * np.sin(Phases[t]))
+
+                # Update phase of this tone
+                Phases[t] += 2*np.pi*Frequencies[t]/RATE
+
+                # Move to next sample to store
+            s += 1
         # Update phase of both sine waves
-        phase += 2*np.pi*sineFrequency/RATE
-        phase2 += 2*np.pi*sineFrequency2/RATE
+        # phase += 2*np.pi*sineFrequency/RATE
+        # phase2 += 2*np.pi*sineFrequency2/RATE
 
     # Convert output buffer to immutable bytes array
     out = bytes(outbuf)
@@ -168,21 +192,22 @@ def main():
 
         count += 1
         if count > 10000:
-            # print("Waiting")
             count = 0
 
             # Change direction when out of bounds
-            if sineFrequency > UPPERFREQ:
+            if Frequencies[0] > UPPERFREQ:
                 ascending = False
-            elif sineFrequency < LOWERFREQ:
+            elif Frequencies[0] < LOWERFREQ:
                 ascending = True
 
             if ascending:
-                sineFrequency += STEP
+                Frequencies[0] += STEP
             else:
-                sineFrequency -= STEP
+                Frequencies[0] -= STEP
 
-        sineFrequency2 = sineFrequency * FIRSTHARMONICRATIO
+            for t,val in enumerate(Tones):
+                Frequencies[t] = Frequencies[0] * val
+                # print('Frequencies ', t, ' = ', Frequencies[t])
 
     stream.stop_stream()
     stream.close()
