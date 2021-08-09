@@ -10,6 +10,8 @@ import pyaudio
 import numpy as np
 import array
 
+INITIAL_FREQUENCY = 200
+
 # Store data for each tone to be generated:
 # ratio = harmonic ratio (float) to fundamental frequency
 # amplitude = relative loudness of this tone (float 0-0.5 usually)
@@ -22,13 +24,20 @@ class Tone:
         self.ratio = ratio
         self.amplitude = amplitude
 
+        # Check if this is the first Tone that has been instantiated
+        if isinstance(Tone, type):
+            # If not, apply ratio to determine initial frequency
+            self.frequency = INITIAL_FREQUENCY * self.ratio
+        else:
+            # If it's the first, set initial frequency
+            self.frequency = INITIAL_FREQUENCY
+
     phase = 0
-    frequency = 300
 
 
 # Instantiate a list of tone objects with relative harmonic ratios and
 # amplitudes
-ClassTones = [Tone(1, 0.3), Tone(1.5, 0.2), Tone(1.25, 0.1)]
+ClassTones = [Tone(1, 0.3), Tone(1.5, 0.2), Tone(2, 0.05)]
 
 # Audio output constants
 WIDTH = 2  # sample size in bytes
@@ -37,10 +46,9 @@ RATE = 44100
 FRAMES_PER_BUFFER = 1024
 
 # Temporary sweep parameters
-UPPER_FREQ = 350
-LOWER_FREQ = 200
-STEP = 0.5
-
+UPPER_FREQ = 250
+LOWER_FREQ = 175
+STEP = 0.25
 
 
 # Global index for output device
@@ -49,7 +57,6 @@ outputDevice = 0
 # Create array of signed ints to hold one sample buffer
 # Make it global so it doesn't get re-allocated for every frame
 outbuf = array.array('h', range(FRAMES_PER_BUFFER*CHANNELS))
-
 
 
 # Function showDevices() lists available input- and output devices
