@@ -33,6 +33,9 @@ class Tone:
             # If it's the first, set initial frequency
             self.frequency = INITIAL_FREQUENCY
 
+    def updatePhase(self):
+        self.phase += 2 * np.pi * self.frequency/RATE
+
     phase = 0
 
 
@@ -152,7 +155,7 @@ def callback(in_data, frame_count, time_info, status):
                 outbuf[s] += next_val
 
                 # Update phase of this tone to compute the next value
-                currentTone.phase += 2*np.pi*currentTone.frequency/RATE
+                currentTone.updatePhase()
 
             # Move along to next sample in outbuf once worked through all the
             # tones to be output
