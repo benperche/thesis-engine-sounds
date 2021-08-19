@@ -13,20 +13,26 @@ import array
 INITIAL_FREQUENCY = 200
 
 
-# Store data for each tone to be generated:
-# ratio = harmonic ratio (float) to fundamental frequency
-# amplitude = relative loudness of this tone (float 0-0.5 usually)
-#
-# automatically updated:
-# phase, frequency (both variable)
 class Tone:
+    # Store data for each tone to be generated:
+    # ratio = harmonic ratio (float) to fundamental frequency
+    # amplitude = relative loudness of this tone (float 0-0.5 usually)
+    #
+    # automatically updated:
+    # phase, frequency (both variable)
+
+    # Create shared class/static variable for fundamental frequency
+    fundFreq = INITIAL_FREQUENCY
+
     # Constructor
     def __init__(self, ratio, amplitude):
         self.ratio = ratio
         self.amplitude = amplitude
+        self.phase = 0
 
         # Check if this is the first Tone that has been instantiated
-        if isinstance(Tone, type):
+        # if isinstance(Tone, type):
+        if ratio == 1:
             # If not, apply ratio to determine initial frequency
             self.frequency = INITIAL_FREQUENCY * self.ratio
         else:
@@ -36,7 +42,13 @@ class Tone:
     def updatePhase(self):
         self.phase += 2 * np.pi * self.frequency/RATE
 
-    phase = 0
+    # Update frequency with respect to fundamental
+    def updateFrequency(self):
+        self.frequency = Tone.fundFreq * self.ratio
+
+        # If this tone is the fundamental, update the shared fundFreq variable
+        if self.ratio == 1:
+            Tone.fundFreq = self.frequency
 
 
 # Instantiate a list of tone objects with relative harmonic ratios and
@@ -212,20 +224,21 @@ def main():
             count = 0
 
             # Change direction when out of bounds
-            if ClassTones[0].frequency > UPPER_FREQ:
+            if Tone.fundFreq > UPPER_FREQ:
                 ascending = False
-            elif ClassTones[0].frequency < LOWER_FREQ:
+            elif Tone.fundFreq < LOWER_FREQ:
                 ascending = True
 
             # Update frequency of fundamental
             if ascending:
-                ClassTones[0].frequency += STEP
+                Tone.fundFreq += STEP
             else:
-                ClassTones[0].frequency -= STEP
+                Tone.fundFreq -= STEP
 
             # Update frequencies of all other tones
             for currentTone in ClassTones:
-                currentTone.frequency = ClassTones[0].frequency * currentTone.ratio
+                currentTone.updateFrequency()
+                # = ClassTones[0].frequency * currentTone.ratio
 
     stream.stop_stream()
     stream.close()
