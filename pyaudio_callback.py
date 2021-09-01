@@ -1,5 +1,6 @@
 #
 # Sinewave generator using pyaudio callback
+# Dependencies: Portaudio, pyaudio - see dependency_instructions.txt
 #
 # Author: Ben Perche, Faculty of Engineering, University of Sydney
 # Initial Code: (ME) 2015 Marc Groenewegen
@@ -111,7 +112,7 @@ def setOutputDevice(p):
             print("Selected device number: ", str(outputDevice))
             break
 
-
+# Set output to the system default output device
 def setDefaultOutputDevice(p):
     global outputDevice
 
@@ -191,13 +192,19 @@ def main():
     # get a handle to the pyaudio interface
     paHandle = pyaudio.PyAudio()
 
+    showDevices(paHandle)
+
     # select a device
     setDefaultOutputDevice(paHandle)
     devinfo = paHandle.get_device_info_by_index(outputDevice)
     print("Selected device name: ", devinfo.get('name'))
+    print(devinfo)
 
-    # Setup nunber of channels
-    CHANNELS = devinfo.get('maxOutputChannels')
+    support = paHandle.is_format_supported(rate=RATE,input_device=None,
+                input_format=None,output_device=outputDevice, output_channels=2,
+                output_format=paHandle.get_format_from_width(WIDTH))
+
+    print('Is format supported: ', support)
 
     # open a stream with some given properties
     stream = paHandle.open(format=paHandle.get_format_from_width(WIDTH),
