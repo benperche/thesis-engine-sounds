@@ -27,3 +27,8 @@ Comment out following lines from '/usr/share/alsa/alsa.conf' - use sudo
 pcm.rear cards.pcm.rear
 pcm.center_lfe cards.pcm.center_lfe
 pcm.side cards.pcm.side
+
+ROS Python3 Bridge (from https://medium.com/@beta_b0t/how-to-setup-ros-with-python-3-44a69ca36674)
+Particularly the second line
+sudo apt-get install python3-pip python3-yaml
+sudo pip3 install rospkg catkin_pkg

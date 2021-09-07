@@ -1,4 +1,4 @@
-#
+#! /usr/bin/env python
 # Sinewave generator using pyaudio callback
 # Dependencies: Portaudio, pyaudio - see dependency_instructions.txt
 #
@@ -12,20 +12,22 @@ import numpy as np
 import array
 
 from audio_devices import *
+from ros_listener import *
 
 # ROS
 # import tf2_ros
 # import tf2_geometry_msgs
 #
-# from nav_msgs.msg import Odometry, Path
-# from std_msgs.msg import UInt8MultiArray, Int32, Bool
+import rospy
+from nav_msgs.msg import Odometry, Path
+from std_msgs.msg import UInt8MultiArray, Int32, Bool
 # from geometry_msgs.msg import PoseStamped
 
 # Audio output constants
 WIDTH = 2  # sample size in bytes
 CHANNELS = 2
 RATE = 44100
-FRAMES_PER_BUFFER = 1024
+FRAMES_PER_BUFFER = 16192 #2048#1024 - updated to work with ROS
 INITIAL_FREQUENCY = 200
 
 # Temporary sweep parameters
@@ -86,7 +88,7 @@ outbuf = array.array('h', range(FRAMES_PER_BUFFER*CHANNELS))
 
 # Callback function which is called by pyaudio
 #   whenever it needs output-data or has input-data
-def callback(in_data, frame_count, time_info, status):
+def audioCallback(in_data, frame_count, time_info, status):
     global ClassTones
     global outbuf
 
@@ -135,6 +137,10 @@ def callback(in_data, frame_count, time_info, status):
 def main():
     global ClassTones
 
+    # Setup ROS Node
+    rospy.init_node('audio_listener')
+    audio_autonomous = AudioAutonomous()
+
     # get a handle to the pyaudio interface
     paHandle = pyaudio.PyAudio()
 
@@ -160,7 +166,7 @@ def main():
                            input=False,  # no input
                            output=True,  # only output
                            output_device_index=outputDevice,
-                           stream_callback=callback)
+                           stream_callback=audioCallback)
 
     stream.start_stream()
 
@@ -170,6 +176,8 @@ def main():
 
     # Loop while new info comes in
     while stream.is_active():
+
+        rospy.spin()
 
         # Gradually change direction of sine wave
         count += 1
