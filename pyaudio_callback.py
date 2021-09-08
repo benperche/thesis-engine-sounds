@@ -15,6 +15,9 @@ import datetime
 
 import audiodevices
 import roslistener
+from tone import Tone
+
+import config
 
 # ROS
 # import tf2_ros
@@ -25,12 +28,6 @@ from nav_msgs.msg import Odometry, Path
 from std_msgs.msg import UInt8MultiArray, Int32, Bool
 # from geometry_msgs.msg import PoseStamped
 
-# Audio output constants
-WIDTH = 2  # sample size in bytes
-CHANNELS = 2
-RATE = 44100
-FRAMES_PER_BUFFER = 16192 #2048#1024 - updated to work with ROS
-INITIAL_FREQUENCY = 200
 
 # Temporary sweep parameters
 UPPER_FREQ = 250
@@ -40,43 +37,6 @@ STEP = 0.25
 
 AUDIOTIME = datetime.datetime.now()
 
-
-class Tone:
-    # Store data for each tone to be generated:
-    # ratio = harmonic ratio (float) to fundamental frequency
-    # amplitude = relative loudness of this tone (float 0-0.5 usually)
-    #
-    # automatically updated:
-    # phase, frequency (both variable)
-
-    # Create shared class/static variable for fundamental frequency
-    fundFreq = INITIAL_FREQUENCY
-
-    # Constructor
-    def __init__(self, ratio, amplitude):
-        self.ratio = ratio
-        self.amplitude = amplitude
-        self.phase = 0
-
-        # Check if this is the first Tone that has been instantiated
-        # if isinstance(Tone, type):
-        if ratio == 1:
-            # If not, apply ratio to determine initial frequency
-            self.frequency = INITIAL_FREQUENCY * self.ratio
-        else:
-            # If it's the first, set initial frequency
-            self.frequency = INITIAL_FREQUENCY
-
-    def updatePhase(self):
-        self.phase += 2 * np.pi * self.frequency/RATE
-
-    # Update frequency with respect to fundamental
-    def updateFrequency(self):
-        self.frequency = Tone.fundFreq * self.ratio
-
-        # If this tone is the fundamental, update the shared fundFreq variable
-        if self.ratio == 1:
-            Tone.fundFreq = self.frequency
 
 
 # Instantiate a list of tone objects with relative harmonic ratios and
@@ -88,7 +48,7 @@ outputDevice = 0
 
 # Create array of signed ints to hold one sample buffer
 # Make it global so it doesn't get re-allocated for every frame
-outbuf = array.array('h', range(FRAMES_PER_BUFFER*CHANNELS))
+outbuf = array.array('h', range(config.FRAMES_PER_BUFFER*config.CHANNELS))
 
 
 # Callback function which is called by pyaudio
@@ -106,7 +66,7 @@ def audioCallback(in_data, frame_count, time_info, status):
     for f in range(frame_count):
 
         # Loop through number of output channels
-        for c in range(CHANNELS):
+        for c in range(config.CHANNELS):
 
             # Clear any existing stored value in the output buffer
             outbuf[s] = 0
@@ -160,17 +120,17 @@ def main():
     print("Selected device name: ", devinfo.get('name'))
     print(devinfo)
 
-    support = paHandle.is_format_supported(rate=RATE,input_device=None,
+    support = paHandle.is_format_supported(rate=config.RATE,input_device=None,
                 input_format=None,output_device=outputDevice, output_channels=2,
-                output_format=paHandle.get_format_from_width(WIDTH))
+                output_format=paHandle.get_format_from_width(config.WIDTH))
 
     print('Is format supported: ', support)
 
     # open a stream with some given properties
-    stream = paHandle.open(format=paHandle.get_format_from_width(WIDTH),
-                           channels=CHANNELS,
-                           rate=RATE,
-                           frames_per_buffer=FRAMES_PER_BUFFER,
+    stream = paHandle.open(format=paHandle.get_format_from_width(config.WIDTH),
+                           channels=config.CHANNELS,
+                           rate=config.RATE,
+                           frames_per_buffer=config.FRAMES_PER_BUFFER,
                            input=False,  # no input
                            output=True,  # only output
                            output_device_index=outputDevice,
