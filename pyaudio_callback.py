@@ -11,8 +11,10 @@ import pyaudio
 import numpy as np
 import array
 
-from audio_devices import *
-from ros_listener import *
+import datetime
+
+import audiodevices
+import roslistener
 
 # ROS
 # import tf2_ros
@@ -34,6 +36,9 @@ INITIAL_FREQUENCY = 200
 UPPER_FREQ = 250
 LOWER_FREQ = 175
 STEP = 0.25
+
+
+AUDIOTIME = datetime.datetime.now()
 
 
 class Tone:
@@ -92,6 +97,8 @@ def audioCallback(in_data, frame_count, time_info, status):
     global ClassTones
     global outbuf
 
+    # print('Audio Callback')
+    # AUDIOTIME = datetime.datetime.now() - AUDIOTIME
     # Index for samples to store in output buffer
     s = 0
 
@@ -136,18 +143,19 @@ def audioCallback(in_data, frame_count, time_info, status):
 
 def main():
     global ClassTones
+    # AUDIOTIME = datetime.datetime.now()
 
     # Setup ROS Node
-    rospy.init_node('audio_listener')
-    audio_autonomous = AudioAutonomous()
+    # rospy.init_node('audio_listener')
+    audio_autonomous = roslistener.AudioAutonomous()
 
     # get a handle to the pyaudio interface
     paHandle = pyaudio.PyAudio()
 
-    showDevices(paHandle)
+    audiodevices.showDevices(paHandle)
 
     # select a device
-    outputDevice = setDefaultOutputDevice(paHandle)
+    outputDevice = audiodevices.setDefaultOutputDevice(paHandle)
     devinfo = paHandle.get_device_info_by_index(outputDevice)
     print("Selected device name: ", devinfo.get('name'))
     print(devinfo)
@@ -177,7 +185,10 @@ def main():
     # Loop while new info comes in
     while stream.is_active():
 
-        rospy.spin()
+        # rospy.spin()
+
+        # Print Timing info
+        # print('Audio rate ', 1/AUDIOTIME, ' ROS rate ', 1/AudioAutonomous.ROSTIME)
 
         # Gradually change direction of sine wave
         count += 1
