@@ -29,22 +29,12 @@ from std_msgs.msg import UInt8MultiArray, Int32, Bool
 # from geometry_msgs.msg import PoseStamped
 
 
-# Temporary sweep parameters
-UPPER_FREQ = 250
-LOWER_FREQ = 175
-STEP = 0.25
-
-
 AUDIOTIME = datetime.datetime.now()
-
-
 
 # Instantiate a list of tone objects with relative harmonic ratios and
 # amplitudes
 ClassTones = [Tone(1, 0.3), Tone(1.5, 0.2), Tone(2, 0.05)]
 
-# Global index for output device
-outputDevice = 0
 
 # Create array of signed ints to hold one sample buffer
 # Make it global so it doesn't get re-allocated for every frame
@@ -115,13 +105,13 @@ def main():
     audiodevices.showDevices(paHandle)
 
     # select a device
-    outputDevice = audiodevices.setDefaultOutputDevice(paHandle)
-    devinfo = paHandle.get_device_info_by_index(outputDevice)
+    audiodevices.outputDevice = audiodevices.setDefaultOutputDevice(paHandle)
+    devinfo = paHandle.get_device_info_by_index(audiodevices.outputDevice)
     print("Selected device name: ", devinfo.get('name'))
     print(devinfo)
 
     support = paHandle.is_format_supported(rate=config.RATE,input_device=None,
-                input_format=None,output_device=outputDevice, output_channels=2,
+                input_format=None,output_device=audiodevices.outputDevice, output_channels=2,
                 output_format=paHandle.get_format_from_width(config.WIDTH))
 
     print('Is format supported: ', support)
@@ -133,7 +123,7 @@ def main():
                            frames_per_buffer=config.FRAMES_PER_BUFFER,
                            input=False,  # no input
                            output=True,  # only output
-                           output_device_index=outputDevice,
+                           output_device_index=audiodevices.outputDevice,
                            stream_callback=audioCallback)
 
     stream.start_stream()
@@ -141,6 +131,11 @@ def main():
     # Setup frequency sweep values to be used in loop
     count = 0
     ascending = True
+
+    # Temporary sweep parameters
+    UPPER_FREQ = 250
+    LOWER_FREQ = 175
+    STEP = 0.25
 
     # Loop while new info comes in
     while stream.is_active():

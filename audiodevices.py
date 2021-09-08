@@ -1,3 +1,7 @@
+
+# Global index for output device
+outputDevice = 0
+
 # Function showDevices() lists available input- and output devices
 def showDevices(p):
     # Print Defaul output device
