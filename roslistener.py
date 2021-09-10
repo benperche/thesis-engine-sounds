@@ -21,5 +21,5 @@ class AudioAutonomous:
     # Callback to store velocity info
     def odo_reader(self, data):
         self.current_velocity = data.twist.twist.linear.x
-        print('Velocity = ', self.current_velocity)
+        # print('Velocity = ', self.current_velocity)
         # self.ROSTIME = self.ROSTIME - datetime.datetime.now()
