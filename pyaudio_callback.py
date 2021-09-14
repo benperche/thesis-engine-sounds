@@ -36,7 +36,7 @@ ClassTones = [Tone(1, 0.3), Tone(1.5, 0.2), Tone(2, 0.05)]
 # Create array of signed ints to hold one sample buffer
 # Make it global so it doesn't get re-allocated for every frame
 # outbuf2 = array.array('h', range(config.FRAMES_PER_BUFFER*config.CHANNELS))
-outbuf = np.zeros(config.FRAMES_PER_BUFFER*config.CHANNELS,dtype=np.int16)
+# outbuf = np.zeros(config.FRAMES_PER_BUFFER*config.CHANNELS,dtype=np.int16)
 
 
 # Callback function which is called by pyaudio
@@ -91,6 +91,64 @@ def audioCallback(in_data, frame_count, time_info, status):
     return (out, pyaudio.paContinue)
 
 
+# Callback function which is called by pyaudio
+#   whenever it needs output-data or has input-data
+def audioCallback2(in_data, frame_count, time_info, status):
+    global ClassTones
+    # global outbuf
+    global AUDIOTIME
+
+    # print('Audio Callback')
+    since_last = time.time() - AUDIOTIME
+    print('Since last call ', since_last)
+    AUDIOTIME = time.time()
+    # Index for samples to store in output buffer
+    s = 0
+
+
+
+    # Clear any existing stored value in the output buffer
+    outbuf = np.zeros(config.FRAMES_PER_BUFFER*config.CHANNELS,dtype=np.int16)
+    next_val = np.zeros(config.FRAMES_PER_BUFFER,dtype=np.int16)
+
+    # Loop through the number of Tones
+    for currentTone in ClassTones:
+
+        # Calculate the value to store as integer array
+        next_val += (32767 * currentTone.amplitude *
+                       np.sin(currentTone.phaseArray)).astype(int)
+
+        # Update phase of this tone to compute the next value
+        currentTone.updatePhaseArray()
+
+    # Loop through number of output channels to put the same value in each
+    # for c in range(config.CHANNELS):
+    #
+    #
+    #     # outbuf += next_val
+    #
+    #     # Move along to next sample in outbuf once worked through all the
+    #     # tones to be output
+    #     s += 1
+    #
+    #     # print("s ", s, "value ", next_val)
+
+    # Add this to existing values (eg previous tones in loop)
+    # Odd numbers only
+    outbuf[::2]  += next_val[:]
+
+    # Even numbers only
+    outbuf[1::2]  += next_val[:]
+
+    # Convert output buffer to immutable bytes array
+    out = bytes(outbuf)
+
+    since_start = time.time() - AUDIOTIME
+    print('Callback ', since_start)
+    AUDIOTIME = time.time()
+
+    return (out, pyaudio.paContinue)
+
 #########################
 # Start of main program #
 #########################
@@ -130,7 +188,7 @@ def main():
                            input=False,  # no input
                            output=True,  # only output
                            output_device_index=audiodevices.outputDevice,
-                           stream_callback=audioCallback)
+                           stream_callback=audioCallback2)
 
     stream.start_stream()
 
@@ -171,7 +229,6 @@ def main():
             # Update frequencies of all other tones
             for currentTone in ClassTones:
                 currentTone.updateFrequency()
-                # = ClassTones[0].frequency * currentTone.ratio
 
     stream.stop_stream()
     stream.close()

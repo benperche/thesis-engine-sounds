@@ -27,6 +27,12 @@ class Tone:
             # If it's the first, set initial frequency
             self.frequency = config.INITIAL_FREQUENCY
 
+        # Generate initial phase array from 0 to the number of frames per buffer
+        # spaced by the appropriate rate
+        self.phaseArray = np.arange(0,config.FRAMES_PER_BUFFER * 2 * np.pi * self.frequency/config.RATE, 2 * np.pi * self.frequency/config.RATE)
+        # print(self.phaseArray)
+
+
     def updatePhase(self):
         self.phase += 2 * np.pi * self.frequency/config.RATE
 
@@ -37,3 +43,6 @@ class Tone:
         # If this Tone is the fundamental, update the shared fundFreq variable
         if self.ratio == 1:
             Tone.fundFreq = self.frequency
+
+    def updatePhaseArray(self):
+        self.phaseArray += 2 * np.pi * self.frequency/config.RATE
