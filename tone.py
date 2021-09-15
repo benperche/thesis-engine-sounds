@@ -39,10 +39,16 @@ class Tone:
     # Update frequency with respect to fundamental
     def updateFrequency(self):
         self.frequency = Tone.fundFreq * self.ratio
-
+        # print('my freq ', self.frequency)
         # If this Tone is the fundamental, update the shared fundFreq variable
         if self.ratio == 1:
             Tone.fundFreq = self.frequency
 
     def updatePhaseArray(self):
-        self.phaseArray += 2 * np.pi * self.frequency/config.RATE
+        self.phaseArray = self.phaseArray + (2 * np.pi * self.frequency/config.RATE)
+        # print(self.frequency)
+
+
+# Instantiate a list of tone objects with relative harmonic ratios and
+# amplitudes
+ClassTones = [Tone(1, 0.3)]#, Tone(1.5, 0.2), Tone(2, 0.05)]

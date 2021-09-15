@@ -15,7 +15,7 @@ import time
 
 import audiodevices
 import roslistener
-from tone import Tone
+from tone import Tone, ClassTones
 
 import config
 
@@ -25,24 +25,12 @@ from nav_msgs.msg import Odometry, Path
 from std_msgs.msg import UInt8MultiArray, Int32, Bool
 # from geometry_msgs.msg import PoseStamped
 
-
 AUDIOTIME = time.time()
-
-# Instantiate a list of tone objects with relative harmonic ratios and
-# amplitudes
-ClassTones = [Tone(1, 0.3), Tone(1.5, 0.2), Tone(2, 0.05)]
-
-
-# Create array of signed ints to hold one sample buffer
-# Make it global so it doesn't get re-allocated for every frame
-# outbuf2 = array.array('h', range(config.FRAMES_PER_BUFFER*config.CHANNELS))
-# outbuf = np.zeros(config.FRAMES_PER_BUFFER*config.CHANNELS,dtype=np.int16)
-
 
 # Callback function which is called by pyaudio
 #   whenever it needs output-data or has input-data
 def audioCallback(in_data, frame_count, time_info, status):
-    global ClassTones
+    # global tone.ClassTones
     global outbuf
     global AUDIOTIME
 
@@ -63,7 +51,7 @@ def audioCallback(in_data, frame_count, time_info, status):
         for currentTone in ClassTones:
 
             # Calculate the value to store in the outbuf
-            next_val = int(32767 * currentTone.amplitude *
+            sound_array = int(32767 * currentTone.amplitude *
                            np.sin(currentTone.phase))
 
             # Update phase of this tone to compute the next value
@@ -73,13 +61,13 @@ def audioCallback(in_data, frame_count, time_info, status):
         for c in range(config.CHANNELS):
 
             # Add this to existing values (eg previous tones in loop)
-            outbuf[s] += next_val
+            outbuf[s] += sound_array
 
             # Move along to next sample in outbuf once worked through all the
             # tones to be output
             s += 1
 
-            # print("s ", s, "value ", next_val)
+            # print("s ", s, "value ", sound_array)
 
     # Convert output buffer to immutable bytes array
     out = bytes(outbuf)
@@ -94,57 +82,50 @@ def audioCallback(in_data, frame_count, time_info, status):
 # Callback function which is called by pyaudio
 #   whenever it needs output-data or has input-data
 def audioCallback2(in_data, frame_count, time_info, status):
-    global ClassTones
+    # global tone.ClassTones
     # global outbuf
     global AUDIOTIME
 
-    # print('Audio Callback')
+    # Timer Profiling of Callback
     since_last = time.time() - AUDIOTIME
-    print('Since last call ', since_last)
+    print('Instantaneous Call Rate ', 1/since_last)
     AUDIOTIME = time.time()
-    # Index for samples to store in output buffer
-    s = 0
 
+    # Check for overruns/underruns
+    if status is not 0:
+        print('Callback status ', status)
 
+    # Initialise an array to compute the values to be output in each frame
+    sound_array = np.zeros(config.FRAMES_PER_BUFFER,dtype=np.int16)
 
-    # Clear any existing stored value in the output buffer
+    # Initialise an output buffer for raw data
     outbuf = np.zeros(config.FRAMES_PER_BUFFER*config.CHANNELS,dtype=np.int16)
-    next_val = np.zeros(config.FRAMES_PER_BUFFER,dtype=np.int16)
 
-    # Loop through the number of Tones
+    # Loop through the number of Tones to compute their relevant contribution
     for currentTone in ClassTones:
 
         # Calculate the value to store as integer array
-        next_val += (32767 * currentTone.amplitude *
+        sound_array += (32767 * currentTone.amplitude *
                        np.sin(currentTone.phaseArray)).astype(int)
 
         # Update phase of this tone to compute the next value
         currentTone.updatePhaseArray()
 
-    # Loop through number of output channels to put the same value in each
-    # for c in range(config.CHANNELS):
-    #
-    #
-    #     # outbuf += next_val
-    #
-    #     # Move along to next sample in outbuf once worked through all the
-    #     # tones to be output
-    #     s += 1
-    #
-    #     # print("s ", s, "value ", next_val)
+    # Copy the generated sounds into the output buffer array, which stores the
+    # values for each channel interleaved LRLRLRLR etc
 
-    # Add this to existing values (eg previous tones in loop)
     # Odd numbers only
-    outbuf[::2]  += next_val[:]
+    outbuf[::2]  += sound_array[:]
 
     # Even numbers only
-    outbuf[1::2]  += next_val[:]
+    outbuf[1::2]  += sound_array[:]
 
     # Convert output buffer to immutable bytes array
     out = bytes(outbuf)
 
+    # More timing calculations
     since_start = time.time() - AUDIOTIME
-    print('Callback ', since_start)
+    print('Time to execute callback ', since_start)
     AUDIOTIME = time.time()
 
     return (out, pyaudio.paContinue)
@@ -154,11 +135,11 @@ def audioCallback2(in_data, frame_count, time_info, status):
 #########################
 
 def main():
-    global ClassTones
+    # global tone.ClassTones
     # AUDIOTIME = datetime.datetime.now()
 
     # Setup ROS Node
-    # rospy.init_node('audio_listener')
+    rospy.init_node('audio_listener')
     audio_autonomous = roslistener.AudioAutonomous()
 
     # get a handle to the pyaudio interface
@@ -178,8 +159,6 @@ def main():
 
     print('Is format supported: ', support)
 
-    print('AUDIOTIME', AUDIOTIME)
-
     # open a stream with some given properties
     stream = paHandle.open(format=paHandle.get_format_from_width(config.WIDTH),
                            channels=config.CHANNELS,
@@ -192,43 +171,46 @@ def main():
 
     stream.start_stream()
 
-    # Setup frequency sweep values to be used in loop
-    count = 0
-    ascending = True
+    # # Setup frequency sweep values to be used in loop
+    # count = 0
+    # ascending = True
+    #
+    # # Temporary sweep parameters
+    # UPPER_FREQ = 400
+    # LOWER_FREQ = 175
+    # STEP = 0.25
 
-    # Temporary sweep parameters
-    UPPER_FREQ = 250
-    LOWER_FREQ = 175
-    STEP = 0.25
+    # rate = rospy.Rate(20)
 
     # Loop while new info comes in
-    while stream.is_active():
+    while not rospy.is_shutdown(): #stream.is_active():
 
-        # rospy.spin()
-
+        pass
         # Print Timing info
         # print('Audio rate ', 1/AUDIOTIME, ' ROS rate ', 1/AudioAutonomous.ROSTIME)
 
         # Gradually change direction of sine wave
-        count += 1
-        if count > 10000:
-            count = 0
+        # count += 1
+        # if count > 10000:
+        #     count = 0
+        #
+        #     # Change direction when out of bounds
+        #     if Tone.fundFreq > UPPER_FREQ:
+        #         ascending = False
+        #     elif Tone.fundFreq < LOWER_FREQ:
+        #         ascending = True
+        #
+        #     # Update frequency of fundamental
+        #     if ascending:
+        #         Tone.fundFreq += STEP
+        #     else:
+        #         Tone.fundFreq -= STEP
+        #
+        #     # Update frequencies of all other tones
+        #     for currentTone in tone.ClassTones:
+        #         currentTone.updateFrequency()
+                # print('Fund freq ',currentTone.fundFreq)
 
-            # Change direction when out of bounds
-            if Tone.fundFreq > UPPER_FREQ:
-                ascending = False
-            elif Tone.fundFreq < LOWER_FREQ:
-                ascending = True
-
-            # Update frequency of fundamental
-            if ascending:
-                Tone.fundFreq += STEP
-            else:
-                Tone.fundFreq -= STEP
-
-            # Update frequencies of all other tones
-            for currentTone in ClassTones:
-                currentTone.updateFrequency()
 
     stream.stop_stream()
     stream.close()
