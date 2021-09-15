@@ -24,9 +24,9 @@ class AudioAutonomous:
         self.ascending = True
 
         # Temporary sweep parameters
-        self.UPPER_FREQ = 400
+        self.UPPER_FREQ = 270
         self.LOWER_FREQ = 175
-        self.STEP = 0.25
+        self.STEP = 2#0.25
 
 
 
@@ -41,7 +41,7 @@ class AudioAutonomous:
         # When we receive a new velocity, change the frequeny of the output sound
         # For now, gradually change direction of sine wave
         self.count += 1
-        if self.count > 10:
+        if self.count > 2:
             self.count = 0
 
             # Change direction when out of bounds
@@ -56,7 +56,7 @@ class AudioAutonomous:
             else:
                 Tone.fundFreq -= self.STEP
             print('new freq ', Tone.fundFreq)
-            
+
             # Update frequencies of all other tones
             for currentTone in ClassTones:
                 currentTone.updateFrequency()

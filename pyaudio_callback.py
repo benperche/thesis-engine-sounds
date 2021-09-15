@@ -86,6 +86,8 @@ def audioCallback2(in_data, frame_count, time_info, status):
     # global outbuf
     global AUDIOTIME
 
+    print(' ')
+
     # Timer Profiling of Callback
     since_last = time.time() - AUDIOTIME
     print('Instantaneous Call Rate ', 1/since_last)
@@ -104,6 +106,7 @@ def audioCallback2(in_data, frame_count, time_info, status):
     # Loop through the number of Tones to compute their relevant contribution
     for currentTone in ClassTones:
 
+        print('PhaseArray ',currentTone.phaseArray)
         # Calculate the value to store as integer array
         sound_array += (32767 * currentTone.amplitude *
                        np.sin(currentTone.phaseArray)).astype(int)
@@ -111,6 +114,7 @@ def audioCallback2(in_data, frame_count, time_info, status):
         # Update phase of this tone to compute the next value
         currentTone.updatePhaseArray()
 
+    print(sound_array)
     # Copy the generated sounds into the output buffer array, which stores the
     # values for each channel interleaved LRLRLRLR etc
 
@@ -127,6 +131,8 @@ def audioCallback2(in_data, frame_count, time_info, status):
     since_start = time.time() - AUDIOTIME
     print('Time to execute callback ', since_start)
     AUDIOTIME = time.time()
+
+    # print('Fund freq postcall', Tone.fundFreq)
 
     return (out, pyaudio.paContinue)
 

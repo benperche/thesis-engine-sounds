@@ -45,10 +45,15 @@ class Tone:
             Tone.fundFreq = self.frequency
 
     def updatePhaseArray(self):
-        self.phaseArray = self.phaseArray + (2 * np.pi * self.frequency/config.RATE)
-        # print(self.frequency)
+        last_val = self.phaseArray[-1]
+        # self.phaseArray[:] = self.phaseArray[:] + (2 * np.pi * self.frequency/config.RATE) * config.FRAMES_PER_BUFFER
+
+        # self.phaseArray[:] = self.phaseArray[:] + last_val
+        np.copyto(self.phaseArray,np.linspace(last_val, last_val + (config.FRAMES_PER_BUFFER * 2 * np.pi * self.frequency/config.RATE), config.FRAMES_PER_BUFFER))
+
+        # print(self.phaseArray)
 
 
 # Instantiate a list of tone objects with relative harmonic ratios and
 # amplitudes
-ClassTones = [Tone(1, 0.3)]#, Tone(1.5, 0.2), Tone(2, 0.05)]
+ClassTones = [Tone(1, 0.3), Tone(1.5, 0.2), Tone(2, 0.05)]
