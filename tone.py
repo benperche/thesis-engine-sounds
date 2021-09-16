@@ -16,7 +16,6 @@ class Tone:
     def __init__(self, ratio, amplitude):
         self.ratio = ratio
         self.amplitude = amplitude
-        self.phase = 0
 
         # Check if this is the first tone that has been instantiated
         # if isinstance(tone, type):
@@ -29,12 +28,9 @@ class Tone:
 
         # Generate initial phase array from 0 to the number of frames per buffer
         # spaced by the appropriate rate
-        self.phaseArray = np.arange(0,config.FRAMES_PER_BUFFER * 2 * np.pi * self.frequency/config.RATE, 2 * np.pi * self.frequency/config.RATE)
+        phaseStep = 2 * np.pi * self.frequency/config.RATE
+        self.phaseArray = np.linspace(0,config.FRAMES_PER_BUFFER * phaseStep, config.FRAMES_PER_BUFFER)
         # print(self.phaseArray)
-
-
-    def updatePhase(self):
-        self.phase += 2 * np.pi * self.frequency/config.RATE
 
     # Update frequency with respect to fundamental
     def updateFrequency(self):
@@ -46,12 +42,9 @@ class Tone:
 
     def updatePhaseArray(self):
         last_val = self.phaseArray[-1]
-        # self.phaseArray[:] = self.phaseArray[:] + (2 * np.pi * self.frequency/config.RATE) * config.FRAMES_PER_BUFFER
+        phaseStep = 2 * np.pi * self.frequency/config.RATE
 
-        # self.phaseArray[:] = self.phaseArray[:] + last_val
-        np.copyto(self.phaseArray,np.linspace(last_val, last_val + (config.FRAMES_PER_BUFFER * 2 * np.pi * self.frequency/config.RATE), config.FRAMES_PER_BUFFER))
-
-        # print(self.phaseArray)
+        np.copyto(self.phaseArray,np.linspace(last_val, last_val + (config.FRAMES_PER_BUFFER * phaseStep), config.FRAMES_PER_BUFFER))
 
 
 # Instantiate a list of tone objects with relative harmonic ratios and
