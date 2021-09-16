@@ -36,27 +36,33 @@ class AudioAutonomous:
         # global tone.ClassTones
 
         self.current_velocity = data.twist.twist.linear.x
-        # print('Velocity = ', self.current_velocity)
 
-        # When we receive a new velocity, change the frequeny of the output sound
-        # For now, gradually change direction of sine wave
-        self.count += 1
-        if self.count > 2:
-            self.count = 0
-
-            # Change direction when out of bounds
-            if Tone.fundFreq > self.UPPER_FREQ:
-                self.ascending = False
-            elif Tone.fundFreq < self.LOWER_FREQ:
-                self.ascending = True
-
-            # Update frequency of fundamental
-            if self.ascending:
-                Tone.fundFreq += self.STEP
-            else:
-                Tone.fundFreq -= self.STEP
-            print('new freq ', Tone.fundFreq)
-
-            # Update frequencies of all other tones
-            for currentTone in ClassTones:
+        Tone.fundFreq = self.current_velocity * 100
+        
+        for currentTone in ClassTones:
                 currentTone.updateFrequency()
+
+        print('Velocity = ', self.current_velocity, ' frequency = ',Tone.fundFreq)
+
+        # # When we receive a new velocity, change the frequeny of the output sound
+        # # For now, gradually change direction of sine wave
+        # self.count += 1
+        # if self.count > 2:
+        #     self.count = 0
+        #
+        #     # Change direction when out of bounds
+        #     if Tone.fundFreq > self.UPPER_FREQ:
+        #         self.ascending = False
+        #     elif Tone.fundFreq < self.LOWER_FREQ:
+        #         self.ascending = True
+        #
+        #     # Update frequency of fundamental
+        #     if self.ascending:
+        #         Tone.fundFreq += self.STEP
+        #     else:
+        #         Tone.fundFreq -= self.STEP
+        #     print('new freq ', Tone.fundFreq)
+        #
+        #     # Update frequencies of all other tones
+        #     for currentTone in ClassTones:
+        #         currentTone.updateFrequency()
