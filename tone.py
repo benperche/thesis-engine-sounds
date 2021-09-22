@@ -13,7 +13,7 @@ class Tone:
     fundFreq = config.INITIAL_FREQUENCY
 
     # Constructor
-    def __init__(self, ratio, amplitude):
+    def __init__(self, ratio=1, amplitude=0.1):
         self.ratio = ratio
         self.amplitude = amplitude
 
@@ -49,4 +49,5 @@ class Tone:
 
 # Instantiate a list of tone objects with relative harmonic ratios and
 # amplitudes
-ClassTones = [Tone(1, 0.3), Tone(1.5, 0.2), Tone(2, 0.05)]
+# ClassTones = [Tone(1, 0.3), Tone(1.5, 0.2), Tone(2, 0.05)]
+ClassTones = [Tone(1, 0.3), Tone(1.5, 0.18), Tone(2, 0.3)]

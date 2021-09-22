@@ -37,8 +37,9 @@ class AudioAutonomous:
 
         self.current_velocity = data.twist.twist.linear.x
 
-        Tone.fundFreq = self.current_velocity * 100
-        
+        # Tone.fundFreq = self.current_velocity * 100
+        Tone.fundFreq = 25 * self.current_velocity + 120
+
         for currentTone in ClassTones:
                 currentTone.updateFrequency()
 
