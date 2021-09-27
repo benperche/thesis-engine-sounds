@@ -9,15 +9,13 @@
 
 import pyaudio
 import numpy as np
-import array
 
 import time
 
+import config
 import audiodevices
 import roslistener
 from tone import Tone, ClassTones
-
-import config
 
 # ROS
 import rospy
@@ -28,58 +26,6 @@ from std_msgs.msg import UInt8MultiArray, Int32, Bool
 AUDIOTIME = time.time()
 # stream = 0
 
-# Callback function which is called by pyaudio
-#   whenever it needs output-data or has input-data
-def audioCallback(in_data, frame_count, time_info, status):
-    # global tone.ClassTones
-    global outbuf
-    global AUDIOTIME
-
-    # print('Audio Callback')
-    since_last = time.time() - AUDIOTIME
-    print('Since last call ', since_last)
-    AUDIOTIME = time.time()
-    # Index for samples to store in output buffer
-    s = 0
-
-    # Loop through number of frames to output
-    for f in range(frame_count):
-
-        # Clear any existing stored value in the output buffer
-        outbuf[s] = 0
-
-        # Loop through the number of Tones
-        for currentTone in ClassTones:
-
-            # Calculate the value to store in the outbuf
-            sound_array = int(32767 * currentTone.amplitude *
-                           np.sin(currentTone.phase))
-
-            # Update phase of this tone to compute the next value
-            currentTone.updatePhase()
-
-        # Loop through number of output channels to put the same value in each
-        for c in range(config.CHANNELS):
-
-            # Add this to existing values (eg previous tones in loop)
-            outbuf[s] += sound_array
-
-            # Move along to next sample in outbuf once worked through all the
-            # tones to be output
-            s += 1
-
-            # print("s ", s, "value ", sound_array)
-
-    # Convert output buffer to immutable bytes array
-    out = bytes(outbuf)
-
-    since_start = time.time() - AUDIOTIME
-    print('Callback ', since_start)
-    AUDIOTIME = time.time()
-
-    return (out, pyaudio.paContinue)
-
-
 # Initialise an array to compute the values to be output in each frame
 sound_array = np.zeros(config.FRAMES_PER_BUFFER,dtype=np.int16)
 
@@ -88,14 +34,11 @@ outbuf = np.zeros(config.FRAMES_PER_BUFFER*config.CHANNELS,dtype=np.int16)
 
 # Callback function which is called by pyaudio
 #   whenever it needs output-data or has input-data
-def audioCallback2(in_data, frame_count, time_info, status):
+def audioCallback(in_data, frame_count, time_info, status):
     # global tone.ClassTones
-    # global outbuf
     global AUDIOTIME
     global sound_array
     global outbuf
-
-    # global stream
 
     # Reset arrays
     sound_array.fill(0)
@@ -107,10 +50,6 @@ def audioCallback2(in_data, frame_count, time_info, status):
     since_last = time.time() - AUDIOTIME
     print('Instantaneous Call Rate ', 1/since_last)
     AUDIOTIME = time.time()
-
-    # since_last2 = stream.get_time() - AUDIOTIME2
-    # print('Instantaneous Call Rate ', 1/since_last2)
-    # AUDIOTIME2 = stream.get_time()
 
     # Check for overruns/underruns
     if status is not 0:
@@ -147,10 +86,6 @@ def audioCallback2(in_data, frame_count, time_info, status):
     print('Time to execute callback ', since_start)
     AUDIOTIME = time.time()
 
-    # since_start2 = stream.get_time() - AUDIOTIME2
-    # print('Time to execute callback ', since_start2)
-    # AUDIOTIME2 = stream.get_time()
-
     # print('Fund freq postcall', Tone.fundFreq)
 
     return (out, pyaudio.paContinue)
@@ -161,7 +96,6 @@ def audioCallback2(in_data, frame_count, time_info, status):
 
 def main():
     # global tone.ClassTones
-    # global stream
 
     # Setup ROS Node
     rospy.init_node('audio_listener')
@@ -198,7 +132,7 @@ def main():
                            input=False,  # no input
                            output=True,  # only output
                            output_device_index=audiodevices.outputDevice,
-                           stream_callback=audioCallback2)
+                           stream_callback=audioCallback)
 
     stream.start_stream()
     print('Stream Started')
@@ -214,7 +148,7 @@ def main():
         # When we receive a new velocity, change the frequeny of the output sound
         # For now, gradually change direction of sine wave
         count += 1
-        if count > 100000:
+        if count > 500000:
             count = 0
 
             print('CPU Load ', stream.get_cpu_load())
