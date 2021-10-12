@@ -9,6 +9,7 @@
 
 import pyaudio
 import numpy as np
+import multiprocessing as mp
 
 import time
 
@@ -32,13 +33,18 @@ sound_array = np.zeros(config.FRAMES_PER_BUFFER,dtype=np.int16)
 # Initialise an output buffer for raw data
 outbuf = np.zeros(config.FRAMES_PER_BUFFER*config.CHANNELS,dtype=np.int16)
 
+
+
 # Callback function which is called by pyaudio
 #   whenever it needs output-data or has input-data
 def audioCallback(in_data, frame_count, time_info, status):
     # global tone.ClassTones
     global AUDIOTIME
+    global ClassTones
     global sound_array
     global outbuf
+    # global audio_pipe
+    # global ros_pipe
 
     # Reset arrays
     sound_array.fill(0)
@@ -56,6 +62,12 @@ def audioCallback(in_data, frame_count, time_info, status):
         print('Callback status ', status)
 
 
+    # Check if there is new data to be read
+    # print(ClassTones[0].fundFreq)
+    # if audio_pipe.poll():
+    #     ClassTones = audio_pipe.recv()
+    #     print('Data recv')
+    # print(ClassTones[0].fundFreq)
 
     # Loop through the number of Tones to compute their relevant contribution
     for currentTone in ClassTones:
@@ -78,6 +90,9 @@ def audioCallback(in_data, frame_count, time_info, status):
     # Even numbers only
     outbuf[1::2]  = sound_array[:]
 
+    # Output new values of ClassTones to the pipe to be read
+    # ros_pipe.send(ClassTones)
+
     # Convert output buffer to immutable bytes array
     out = bytes(outbuf)
 
@@ -94,15 +109,49 @@ def audioCallback(in_data, frame_count, time_info, status):
 # Start of main program #
 #########################
 
+
+
+def ros_setup(shared_tones):
+    # global ros_pipe
+
+
+    print('ROS Setup Fn')
+    rospy.init_node('audio_listener')
+    audio_autonomous = roslistener.AudioAutonomous(shared_tones)
+
+    roscount=0
+    while not rospy.is_shutdown():
+        roscount += 1
+        if roscount > 500000:
+            roscount = 0
+
+            print('Spinning ros thread')
+
+
 def main():
     # global tone.ClassTones
+    # global audio_pipe
 
-    # Setup ROS Node
-    rospy.init_node('audio_listener')
-    audio_autonomous = roslistener.AudioAutonomous()
+    # Make a pipe to transfer the Tone objects
+    # global audio_pipe
+    # global ros_pipe
+    # ros_pipe, audio_pipe = mp.Pipe()
+    # global shared_tones
 
-    Tone.fundFreq = 120
+    # Create single element queue to pass the frequency between the ROS reader
+    # process and this process
+    shared_fundFreq = mp.Queue(1)
+    shared_fundFreq.put(config.INITIAL_FREQUENCY)
 
+
+    # Start ros listener in a separate process/thread
+    # mp.set_start_method('spawn')
+
+    # Start a separate process to read ROS velocity messages
+    r = mp.Process(target = ros_setup, args=[shared_fundFreq])
+    r.start()
+
+    # Update all tones
     for currentTone in ClassTones:
             currentTone.updateFrequency()
 
@@ -116,7 +165,6 @@ def main():
     audiodevices.outputDevice = audiodevices.setDefaultOutputDevice(paHandle)
     devinfo = paHandle.get_device_info_by_index(audiodevices.outputDevice)
     print("Selected device name: ", devinfo.get('name'))
-    print(devinfo)
 
     support = paHandle.is_format_supported(rate=config.RATE,input_device=None,
                 input_format=None,output_device=audiodevices.outputDevice, output_channels=2,
@@ -144,6 +192,15 @@ def main():
     # Loop while new info comes in
     while not rospy.is_shutdown(): #stream.is_active():
 
+        # Periodically check for new speed values from ROS and update the phase arrays
+        if shared_fundFreq.full():
+            # Update the fundamental frequency for all the tones
+            Tone.fundFreq=shared_fundFreq.get()
+
+            # Fix all the other frequencies
+            for currentTone in ClassTones:
+                    currentTone.updateFrequency()
+
         # pass
         # When we receive a new velocity, change the frequeny of the output sound
         # For now, gradually change direction of sine wave
@@ -152,6 +209,8 @@ def main():
             count = 0
 
             print('CPU Load ', stream.get_cpu_load())
+
+
 
     stream.stop_stream()
     stream.close()

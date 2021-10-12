@@ -4,66 +4,68 @@ from std_msgs.msg import UInt8MultiArray, Int32, Bool
 
 import datetime
 
+import multiprocessing as mp
+
 import config
 from tone import Tone, ClassTones
 
 class AudioAutonomous:
 
     # Setup listeners
-    def __init__(self):
+    def __init__(self, shared_fundFreq):
         print('ROS Setup')
 
         self.current_velocity = 0.
+
+        self.shared_fundFreq = shared_fundFreq
 
         # self.ROSTIME = datetime.datetime.now()
 
         rospy.Subscriber('/zio/odometry/rear', Odometry, self.odo_reader)
 
-        # Setup frequency sweep values to be used in loop
-        self.count = 0
-        self.ascending = True
+        # # Setup frequency sweep values to be used in loop
+        # self.count = 0
+        # self.ascending = True
+        #
+        # # Temporary sweep parameters
+        # self.UPPER_FREQ = 270
+        # self.LOWER_FREQ = 175
+        # self.STEP = 2#0.25
 
-        # Temporary sweep parameters
-        self.UPPER_FREQ = 270
-        self.LOWER_FREQ = 175
-        self.STEP = 2#0.25
+        # self.output_pipe = ros_pipe
 
 
 
     # Callback to store velocity info
     def odo_reader(self, data):
 
-        # global tone.ClassTones
+        # global ClassTones
 
         self.current_velocity = data.twist.twist.linear.x
+        # print('NewVel')
+
+        # Get any new values from the pipe
+        # print(ClassTones[0].fundFreq)
+        # if self.output_pipe.poll():
+        #     print('Polling')
+        #     ClassTones = self.output_pipe.recv()
+        # print(ClassTones[0].fundFreq)
 
         # Tone.fundFreq = self.current_velocity * 100
-        Tone.fundFreq = 25 * self.current_velocity + 120
 
-        for currentTone in ClassTones:
-                currentTone.updateFrequency()
+        # Empty queue if needed
+        if self.shared_fundFreq.full():
+            self.shared_fundFreq.get()
 
-        print('Velocity = ', self.current_velocity, ' frequency = ',Tone.fundFreq)
+        # Put new value into the queue, overwriting previous value
+        newFreq = 25 * self.current_velocity + 120
+        self.shared_fundFreq.put(newFreq, False)
 
-        # # When we receive a new velocity, change the frequeny of the output sound
-        # # For now, gradually change direction of sine wave
-        # self.count += 1
-        # if self.count > 2:
-        #     self.count = 0
-        #
-        #     # Change direction when out of bounds
-        #     if Tone.fundFreq > self.UPPER_FREQ:
-        #         self.ascending = False
-        #     elif Tone.fundFreq < self.LOWER_FREQ:
-        #         self.ascending = True
-        #
-        #     # Update frequency of fundamental
-        #     if self.ascending:
-        #         Tone.fundFreq += self.STEP
-        #     else:
-        #         Tone.fundFreq -= self.STEP
-        #     print('new freq ', Tone.fundFreq)
-        #
-        #     # Update frequencies of all other tones
-        #     for currentTone in ClassTones:
+        # for currentTone in self.ros_class_tones[0]:
         #         currentTone.updateFrequency()
+
+        print('Velocity = ', self.current_velocity, ' frequency = ',newFreq)
+
+
+        # self.output_pipe.send(ClassTones)
+        # print('Output sent')
