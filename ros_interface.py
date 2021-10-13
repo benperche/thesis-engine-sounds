@@ -30,13 +30,13 @@ def ros_start(shared_tones):
 class AudioAutonomous:
 
     # Setup listeners
-    def __init__(self, shared_fundFreq):
+    def __init__(self, vel_queue):
         print('ROS Setup')
 
         self.current_velocity = 0.
 
         # Method for passing message back to main process
-        self.shared_fundFreq = shared_fundFreq
+        self.vel_queue = vel_queue
 
         rospy.Subscriber('/zio/odometry/rear', Odometry, self.odo_reader)
 
@@ -48,13 +48,13 @@ class AudioAutonomous:
         # print('NewVel')
 
         # Calculate frequency to be returned
-        newFreq = 25 * self.current_velocity + 120
+        # newFreq = 25 * self.current_velocity + 120
 
         # Empty queue if needed
-        if self.shared_fundFreq.full():
-            self.shared_fundFreq.get()
+        if self.vel_queue.full():
+            self.vel_queue.get()
 
         # Put new value into the queue, overwriting previous value
-        self.shared_fundFreq.put(newFreq, False)
+        self.vel_queue.put(self.current_velocity, False)
 
-        print('Velocity = ', self.current_velocity, ' frequency = ',newFreq)
+        print('Velocity = ', self.current_velocity)#, ' frequency = ',newFreq)

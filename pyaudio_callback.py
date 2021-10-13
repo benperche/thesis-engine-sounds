@@ -100,13 +100,13 @@ def audioCallback(in_data, frame_count, time_info, status):
 
 def main():
 
-    # Create single element queue to pass the frequency between the ROS reader
+    # Create single element queue to pass the velocity between the ROS reader
     # process and this process
-    shared_fundFreq = mp.Queue(1)
-    shared_fundFreq.put(config.INITIAL_FREQUENCY)
+    vel_queue = mp.Queue(1)
+    vel_queue.put(0)
 
     # Start a separate process to read ROS velocity messages
-    r = mp.Process(target = ros_interface.ros_start, args=[shared_fundFreq])
+    r = mp.Process(target = ros_interface.ros_start, args=[vel_queue])
     r.start()
 
     # Update all tones with initial frequency
@@ -145,15 +145,42 @@ def main():
     # Setup count to periodically print stats during main loop
     count = 0
 
-
     # Main Loop
     while not rospy.is_shutdown(): #stream.is_active():
 
         # Periodically check for new speed values from ROS and update the phase arrays
-        if shared_fundFreq.full():
-            print('Received New Freq')
-            # Update the fundamental frequency for all the tones
-            Tone.fundFreq=shared_fundFreq.get()
+        if vel_queue.full():
+
+            # Calculate tone frequency based on speed
+            new_vel=vel_queue.get()
+            print(new_vel)
+
+            # Check for velocity of 0
+            if new_vel < 0.01:
+
+                # Set fundamental frequency to set minimum
+                Tone.fundFreq = config.minFreq
+
+                # Add an extra note to the chord if not already present
+                if len(ClassTones) < 4:
+                    # Add a fourth tone
+                    ClassTones.append(Tone(1.77, 0.15))
+                    ClassTones.append(Tone(1.33, 0.1))
+                    ClassTones[2].ratio = 0.1
+                    print('added4')
+
+            else:
+                # Remove stationary note if present
+                if len(ClassTones) > 3:
+                        # Remove last tone
+                        ClassTones.pop()
+                        ClassTones.pop()
+                        ClassTones[2].ratio = 0.3
+                        print('remove4')
+
+                Tone.fundFreq = 25 * new_vel + config.minFreq
+
+            print('Fund Freq = ',Tone.fundFreq)
 
             # Fix all the other frequencies
             for currentTone in ClassTones:
