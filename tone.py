@@ -10,7 +10,7 @@ class Tone:
     # phase, frequency (both variable)
 
     # Create shared class/static variable for fundamental frequency
-    fundFreq = config.INITIAL_FREQUENCY
+    fund_freq = config.INITIAL_FREQUENCY
 
     # Constructor
     def __init__(self, ratio=1, amplitude=0.1):
@@ -21,7 +21,7 @@ class Tone:
         # if isinstance(tone, type):
         if ratio == 1:
             # If not, apply ratio to determine initial frequency
-            self.frequency = config.INITIAL_FREQUENCY * self.ratio
+            self.frequency = Tone.fund_freq * self.ratio
         else:
             # If it's the first, set initial frequency
             self.frequency = config.INITIAL_FREQUENCY
@@ -30,15 +30,14 @@ class Tone:
         # spaced by the appropriate rate
         phaseStep = 2 * np.pi * self.frequency/config.RATE
         self.phaseArray = np.linspace(0,config.FRAMES_PER_BUFFER * phaseStep, config.FRAMES_PER_BUFFER)
-        # print(self.phaseArray)
 
     # Update frequency with respect to fundamental
     def updateFrequency(self):
-        self.frequency = Tone.fundFreq * self.ratio
+        self.frequency = Tone.fund_freq * self.ratio
         # print('my freq ', self.frequency)
-        # If this Tone is the fundamental, update the shared fundFreq variable
+        # If this Tone is the fundamental, update the shared fund_freq variable
         if self.ratio == 1:
-            Tone.fundFreq = self.frequency
+            Tone.fund_freq = self.frequency
 
     def updatePhaseArray(self):
         last_val = self.phaseArray[-1]

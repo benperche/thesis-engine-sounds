@@ -24,7 +24,7 @@ def ros_start(shared_tones):
         roscount += 1
         if roscount > 500000:
             roscount = 0
-            print('Spinning ros thread')
+            # print('Spinning ros thread')
 
 
 class AudioAutonomous:
@@ -57,4 +57,4 @@ class AudioAutonomous:
         # Put new value into the queue, overwriting previous value
         self.vel_queue.put(self.current_velocity, False)
 
-        print('Velocity = ', self.current_velocity)#, ' frequency = ',newFreq)
+        # print('Velocity = ', self.current_velocity)#, ' frequency = ',newFreq)

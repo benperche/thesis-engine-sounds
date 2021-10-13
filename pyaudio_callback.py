@@ -1,31 +1,32 @@
 #! /usr/bin/env python
-# Sinewave generator using pyaudio callback
-# Dependencies: Portaudio, pyaudio - see dependency_instructions.txt
+#
+# Engine Sound Generator
+#
+# Synthesise engine sound and write to sound hardware using PortAudio/PyAudio
+# Callbacks. Get vehicle speed in m/s from shared queue vel_queue, which can
+# be set by a ROS listener.
 #
 # Author: Ben Perche, Faculty of Engineering, University of Sydney
-# Initial Code: (ME) 2015 Marc Groenewegen
-# https://www.dinkum.nl/software/python/audio/basic_sine.py
-#
 
 import pyaudio
 import numpy as np
 import multiprocessing as mp
-
 import time
+
+# ROS
+import rospy
+from nav_msgs.msg import Odometry, Path
+from std_msgs.msg import UInt8MultiArray, Int32, Bool
 
 import config
 import audio_devices
 import ros_interface
 from tone import Tone, ClassTones
 
-# ROS
-import rospy
-from nav_msgs.msg import Odometry, Path
-from std_msgs.msg import UInt8MultiArray, Int32, Bool
-# from geometry_msgs.msg import PoseStamped
+# Global Variables - mostly for use in audio callback
 
-AUDIOTIME = time.time()
-# stream = 0
+# Keep track of running time for profiling audio callback function
+audio_time = time.time()
 
 # Initialise an array to compute the values to be output in each frame
 sound_array = np.zeros(config.FRAMES_PER_BUFFER,dtype=np.int16)
@@ -34,25 +35,23 @@ sound_array = np.zeros(config.FRAMES_PER_BUFFER,dtype=np.int16)
 outbuf = np.zeros(config.FRAMES_PER_BUFFER*config.CHANNELS,dtype=np.int16)
 
 
-
 # Callback function which is called by pyaudio
 #   whenever it needs output-data or has input-data
 def audioCallback(in_data, frame_count, time_info, status):
-    global AUDIOTIME
     global ClassTones
     global sound_array
     global outbuf
+    global audio_time
 
-    # Reset arrays
+    # Reset array
     sound_array.fill(0)
-    # outbuf.fill(0)
 
-    print(' ')
+    # print(' ')
 
     # Timer Profiling of Callback
-    since_last = time.time() - AUDIOTIME
-    print('Instantaneous Call Rate ', 1/since_last)
-    AUDIOTIME = time.time()
+    # since_last = time.time() - audio_time
+    # print('Instantaneous Call Rate ', 1/since_last)
+    # audio_time = time.time()
 
     # Check for overruns/underruns
     if status is not 0:
@@ -60,15 +59,14 @@ def audioCallback(in_data, frame_count, time_info, status):
 
 
     # Loop through the number of Tones to compute their relevant contribution
-    for currentTone in ClassTones:
+    for current_tone in ClassTones:
 
-        # print('PhaseArray ',currentTone.phaseArray)
         # Calculate the value to store as integer array
-        sound_array += (32767 * currentTone.amplitude *
-                       np.sin(currentTone.phaseArray)).astype(int)
+        sound_array += (32767 * current_tone.amplitude *
+                       np.sin(current_tone.phaseArray)).astype(int)
 
         # Update phase of this tone to compute the next value
-        currentTone.updatePhaseArray()
+        current_tone.updatePhaseArray()
 
     # Copy the generated sounds into the output buffer array, which stores the
     # values for each channel interleaved LRLRLRLR etc
@@ -79,16 +77,13 @@ def audioCallback(in_data, frame_count, time_info, status):
     # Even numbers only
     outbuf[1::2]  = sound_array[:]
 
-    # Output new values of ClassTones to the pipe to be read
-    # ros_pipe.send(ClassTones)
-
     # Convert output buffer to immutable bytes array
     out = bytes(outbuf)
 
     # More timing calculations
-    since_start = time.time() - AUDIOTIME
-    print('Time to execute callback ', since_start)
-    AUDIOTIME = time.time()
+    # since_start = time.time() - audio_time
+    # print('Time to execute callback ', since_start)
+    # audio_time = time.time()
 
     return (out, pyaudio.paContinue)
 
@@ -110,24 +105,24 @@ def main():
     r.start()
 
     # Update all tones with initial frequency
-    for currentTone in ClassTones:
-            currentTone.updateFrequency()
+    for current_tone in ClassTones:
+            current_tone.updateFrequency()
 
     # get a handle to the pyaudio interface
     paHandle = pyaudio.PyAudio()
 
-    audio_devices.showDevices(paHandle)
+    # audio_devices.showDevices(paHandle)
 
     # select a device
-    audio_devices.outputDevice = audio_devices.setDefaultOutputDevice(paHandle)
-    devinfo = paHandle.get_device_info_by_index(audio_devices.outputDevice)
+    audio_devices.output_device = audio_devices.setDefaultOutputDevice(paHandle)
+    devinfo = paHandle.get_device_info_by_index(audio_devices.output_device)
     print("Selected device name: ", devinfo.get('name'))
 
-    support = paHandle.is_format_supported(rate=config.RATE,input_device=None,
-                input_format=None,output_device=audio_devices.outputDevice, output_channels=2,
-                output_format=paHandle.get_format_from_width(config.WIDTH))
+    # support = paHandle.is_format_supported(rate=config.RATE,input_device=None,
+    #             input_format=None,output_device=audio_devices.output_device, output_channels=2,
+    #             output_format=paHandle.get_format_from_width(config.WIDTH))
 
-    print('Is format supported: ', support)
+    # print('Is format supported: ', support)
 
     # open a stream with some given properties
     stream = paHandle.open(format=paHandle.get_format_from_width(config.WIDTH),
@@ -136,7 +131,7 @@ def main():
                            frames_per_buffer=config.FRAMES_PER_BUFFER,
                            input=False,  # no input
                            output=True,  # only output
-                           output_device_index=audio_devices.outputDevice,
+                           output_device_index=audio_devices.output_device,
                            stream_callback=audioCallback)
 
     stream.start_stream()
@@ -153,13 +148,12 @@ def main():
 
             # Calculate tone frequency based on speed
             new_vel=vel_queue.get()
-            print(new_vel)
 
             # Check for velocity of 0
             if new_vel < 0.01:
 
                 # Set fundamental frequency to set minimum
-                Tone.fundFreq = config.minFreq
+                Tone.fund_freq = config.MIN_FREQUENCY
 
                 # Add an extra note to the chord if not already present
                 if len(ClassTones) < 4:
@@ -172,26 +166,24 @@ def main():
             else:
                 # Remove stationary note if present
                 if len(ClassTones) > 3:
-                        # Remove last tone
-                        ClassTones.pop()
-                        ClassTones.pop()
-                        ClassTones[2].ratio = 0.3
-                        print('remove4')
+                    # Remove last tone
+                    ClassTones.pop()
+                    ClassTones.pop()
+                    ClassTones[2].ratio = 0.3
+                    print('remove4')
 
-                Tone.fundFreq = 25 * new_vel + config.minFreq
-
-            print('Fund Freq = ',Tone.fundFreq)
+                Tone.fund_freq = 25 * new_vel + config.MIN_FREQUENCY
 
             # Fix all the other frequencies
-            for currentTone in ClassTones:
-                    currentTone.updateFrequency()
-            print('Updated')
+            for current_tone in ClassTones:
+                    current_tone.updateFrequency()
 
-        # Every so often print CPU Load
+        # Every so often print CPU Load and current fundamental frequency
         count += 1
         if count > 500000:
             count = 0
-
+            print(' ')
+            print('Fund Freq = ',Tone.fund_freq)
             print('CPU Load ', stream.get_cpu_load())
 
     stream.stop_stream()
