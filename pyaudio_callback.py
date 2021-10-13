@@ -15,15 +15,13 @@ import time
 
 # ROS
 import rospy
-from nav_msgs.msg import Odometry, Path
-from std_msgs.msg import UInt8MultiArray, Int32, Bool
 
 import config
 import audio_devices
 import ros_interface
 from tone import Tone, ClassTones
 
-# Global Variables - mostly for use in audio callback
+## Global Variables - mostly for use in audio callback
 
 # Keep track of running time for profiling audio callback function
 audio_time = time.time()
@@ -157,34 +155,41 @@ def main():
 
                 # Add an extra note to the chord if not already present
                 if len(ClassTones) < 4:
-                    # Add a fourth tone
+                    # Reduce the volume/amplitude of the highest tone
+                    ClassTones[2].ratio = 0.1
+
+                    # Add a fourth and fifth tone
                     ClassTones.append(Tone(1.77, 0.15))
                     ClassTones.append(Tone(1.33, 0.1))
-                    ClassTones[2].ratio = 0.1
-                    print('added4')
 
             else:
                 # Remove stationary note if present
                 if len(ClassTones) > 3:
-                    # Remove last tone
+                    # Remove last tones
                     ClassTones.pop()
                     ClassTones.pop()
+
+                    # Replace volume of last tone
                     ClassTones[2].ratio = 0.3
-                    print('remove4')
 
                 Tone.fund_freq = 25 * new_vel + config.MIN_FREQUENCY
 
-            # Fix all the other frequencies
+            # Adjust frequencies of tones based on new fund_freq
             for current_tone in ClassTones:
                     current_tone.updateFrequency()
+
 
         # Every so often print CPU Load and current fundamental frequency
         count += 1
         if count > 500000:
             count = 0
             print(' ')
-            print('Fund Freq = ',Tone.fund_freq)
-            print('CPU Load ', stream.get_cpu_load())
+            # Last read velocity from ROS
+            print(f'Last Vel  = {new_vel:.3f} m/s')
+            # Tone fundamental frequency
+            print(f'Fund Freq = {Tone.fund_freq:.2f} Hz')
+            # PyAudio alleged CPU load
+            print(f'CPU Load  = {100*(stream.get_cpu_load()):.2f}%')
 
     stream.stop_stream()
     stream.close()

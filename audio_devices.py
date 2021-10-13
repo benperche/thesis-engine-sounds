@@ -1,3 +1,4 @@
+import pyaudio
 
 # Global index for output device
 output_device = 0
