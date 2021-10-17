@@ -95,7 +95,8 @@ def main():
 
     # Create single element queue to pass the velocity between the ROS reader
     # process and this process
-    vel_queue = mp.Queue(1)
+    manager = mp.Manager()
+    vel_queue = manager.Queue(1)
     vel_queue.put(0)
 
     # Start a separate process to read ROS velocity messages
@@ -104,7 +105,8 @@ def main():
 
     # Update all tones with initial frequency
     for current_tone in ClassTones:
-            current_tone.updateFrequency()
+        current_tone.updateFrequency()
+        print(f'Current Tone Freq {current_tone.frequency}')
 
     # get a handle to the pyaudio interface
     paHandle = pyaudio.PyAudio()
@@ -159,15 +161,15 @@ def main():
                     ClassTones[2].ratio = 0.1
 
                     # Add a fourth and fifth tone
-                    ClassTones.append(Tone(1.77, 0.15))
-                    ClassTones.append(Tone(1.33, 0.1))
+                    # ClassTones.append(Tone(1.77, 0.05))
+                    ClassTones.append(Tone(1.33, 0.12))
 
             else:
                 # Remove stationary note if present
                 if len(ClassTones) > 3:
                     # Remove last tones
                     ClassTones.pop()
-                    ClassTones.pop()
+                    # ClassTones.pop()
 
                     # Replace volume of last tone
                     ClassTones[2].ratio = 0.3
@@ -181,7 +183,7 @@ def main():
 
         # Every so often print CPU Load and current fundamental frequency
         count += 1
-        if count > 500000:
+        if count > 5000:
             count = 0
             print(' ')
             # Last read velocity from ROS

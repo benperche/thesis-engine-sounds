@@ -18,13 +18,14 @@ class Tone:
         self.amplitude = amplitude
 
         # Check if this is the first tone that has been instantiated
-        # if isinstance(tone, type):
         if ratio == 1:
-            # If not, apply ratio to determine initial frequency
-            self.frequency = Tone.fund_freq * self.ratio
-        else:
             # If it's the first, set initial frequency
             self.frequency = config.INITIAL_FREQUENCY
+        else:
+            # If not, apply ratio to determine initial frequency
+            self.frequency = Tone.fund_freq * self.ratio
+
+        # print(f'My freq = {self.frequency}')
 
         # Generate initial phase array from 0 to the number of frames per buffer
         # spaced by the appropriate rate
