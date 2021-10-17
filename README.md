@@ -4,10 +4,10 @@ Python code to generate synthetic engine sounds to be used on an Autonomous Vehi
 
 Part of 2021 Undergraduate Thesis, supervised by Stewart Worrall at the University of Sydney
 
-INSTALLATION
-Check dependency_instructions.md
+# Installation
+Check [dependency_instructions.md](dependency_instructions.md)
 
-USE
+# Use
 1. Start Dataset Container
 In terminal:
   xhost +
