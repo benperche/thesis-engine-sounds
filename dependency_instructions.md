@@ -1,5 +1,7 @@
 # Dependency Installation Instructions
 
+## Python 3.6.9
+
 ## Portaudio
 Download files: http://files.portaudio.com/download.html
 Install ALSA Dev kit:
@@ -20,7 +22,7 @@ sudo apt-get install python-pyaudio python3-pyaudio
   ```
 (http://people.csail.mit.edu/hubert/pyaudio/)
 
-## Numpy
+## NumPy
 ```
 pip3 install numpy
   ```

@@ -28,3 +28,12 @@ Open rviz_setup.rviz file to plot LIDAR points and open camera feed
 To stop:
 ctrl+c in Python terminal
 Pause/stop dataset in GUI
+
+# Changing the Sounds
+The program has been written to facilitate easy changes to the tones used. To change the basic engine tone, you can adjust the initial declaration of tones in the last line of [tone.py](tone.py), with different amplitudes or harmonic ratios.
+
+To change the relationship between the tone and the velocity, adjust line 177 in [pyaudio_callback.py](pyaudio_callback.py).
+
+To change the sound when stopped, adjust the tones added at line 165 in[pyaudio_callback.py](pyaudio_callback.py) (which should then be removed again near line 171.)
+
+To change other properties such as the number of frames per buffer, edit [config.py](config.py)

@@ -2,14 +2,14 @@ import rospy
 from nav_msgs.msg import Odometry
 
 import config
-from tone import Tone, ClassTones
+# from tone import Tone, ClassTones
 
 # Function to set up listener object to vehicle velocity
 # This can be called in a separate process to improve performance
-def ros_start(shared_tones):
+def ros_start(vel_queue_ptr):
 
     rospy.init_node('audio_listener')
-    audio_autonomous = AudioAutonomous(shared_tones)
+    vel_listener = VelocityListener(vel_queue_ptr)
 
     print('ROS Setup Completed')
 
@@ -22,7 +22,7 @@ def ros_start(shared_tones):
             # print('Spinning ros thread')
 
 
-class AudioAutonomous:
+class VelocityListener:
 
     # Setup listeners
     def __init__(self, vel_queue):
